@@ -69,23 +69,9 @@ static inline bool iswalpha(wint_t wch) {
   }
 }
 
-static inline bool iswdigit(wint_t wch) {
-  switch (wch) {
-  case L'0':
-  case L'1':
-  case L'2':
-  case L'3':
-  case L'4':
-  case L'5':
-  case L'6':
-  case L'7':
-  case L'8':
-  case L'9':
-    return true;
-  default:
-    return false;
-  }
-}
+int iswdigit(wint_t wch);
+
+int iswxdigit(wint_t wch);
 
 static inline bool iswalnum(wint_t wch) {
   switch (wch) {
