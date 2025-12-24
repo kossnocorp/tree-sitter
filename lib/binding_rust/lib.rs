@@ -36,6 +36,55 @@ mod wasm_language;
 #[cfg_attr(docsrs, doc(cfg(feature = "wasm")))]
 pub use wasm_language::*;
 
+#[cfg(target_arch = "wasm32")]
+mod wasm_allocator_exports {
+    use std::alloc::{alloc, dealloc, realloc, Layout};
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rust_malloc(size: usize) -> *mut u8 {
+        if size == 0 {
+            return core::ptr::null_mut();
+        }
+        let layout = match Layout::from_size_align(size, 8) {
+            Ok(l) => l,
+            Err(_) => return core::ptr::null_mut(),
+        };
+        unsafe { alloc(layout) }
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rust_free(ptr: *mut u8, size: usize) {
+        if ptr.is_null() || size == 0 {
+            return;
+        }
+        let layout = match Layout::from_size_align(size, 8) {
+            Ok(l) => l,
+            Err(_) => return,
+        };
+        unsafe { dealloc(ptr, layout) }
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn rust_realloc(
+        ptr: *mut u8,
+        old_size: usize,
+        new_size: usize,
+    ) -> *mut u8 {
+        if ptr.is_null() {
+            return unsafe { rust_malloc(new_size) };
+        }
+        if new_size == 0 {
+            unsafe { rust_free(ptr, old_size) };
+            return core::ptr::null_mut();
+        }
+        let layout = match Layout::from_size_align(old_size, 8) {
+            Ok(l) => l,
+            Err(_) => return core::ptr::null_mut(),
+        };
+        unsafe { realloc(ptr, layout, new_size) }
+    }
+}
+
 /// The latest ABI version that is supported by the current version of the
 /// library.
 ///
